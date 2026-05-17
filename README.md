@@ -197,14 +197,6 @@ Phần lớn API nằm dưới prefix `/api`.
 - `src/main/java/ceb/config/VnpayConfig.java`
 - `src/main/java/ceb/config/CloudinaryConfig.java`
 
-## Lưu ý kỹ thuật
 
-- Project đang dùng `Maven Wrapper`, nên không bắt buộc cài Maven global.
-- `packaging` trong `pom.xml` là `war`, nhưng vẫn có thể chạy local bình thường bằng `spring-boot:run`.
-- Repository hiện tại nghiêng về `Spring JDBC` và truy vấn SQL thủ công.
-- File `application.properties` đang chứa nhiều khóa nhạy cảm như JWT, mail, Google OAuth, Cloudinary, VNPAY.
-
-
-- biến môi trường
 - `application-local.properties`
 - hoặc file cấu hình riêng không commit lên git
