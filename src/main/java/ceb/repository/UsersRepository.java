@@ -75,15 +75,6 @@ public class UsersRepository {
         return jdbc.query(sql, userMapper, userId).stream().findFirst();
     }
 
-    public int updateProfile(int userId, String fullName, String email, String phone, String address) {
-        String sql = """
-            UPDATE Users
-            SET FullName = ?, Email = ?, Phone = ?, Address = ?
-            WHERE UserId = ?
-        """;
-        return jdbc.update(sql, fullName, email, phone, address, userId);
-    }
-
     // 5. Lưu User mới
     public int save(Users user) {
         String sql = """

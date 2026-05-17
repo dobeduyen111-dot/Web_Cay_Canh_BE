@@ -3,7 +3,9 @@ package ceb.controller;
 import java.util.List;
 
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.util.StringUtils;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -18,6 +20,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import ceb.domain.model.Products;
+import ceb.domain.req.ProductJsonRequest;
 import ceb.domain.req.ProductRequest;
 import ceb.domain.res.MessageResponse;
 import ceb.domain.res.ProductResponse;
@@ -67,18 +70,34 @@ public class ProductsController {
         return productsService.findByCategory(categoryId).stream().map(ProductResponse::from).toList();
     }
 
-    @PostMapping
+    @PostMapping(consumes = {MediaType.MULTIPART_FORM_DATA_VALUE, MediaType.APPLICATION_FORM_URLENCODED_VALUE})
     @PreAuthorize("hasRole('ADMIN')")
     @ResponseStatus(HttpStatus.CREATED)
     public ProductResponse create(@Valid @ModelAttribute ProductRequest request) {
         return ProductResponse.from(productsService.create(toProduct(request)));
     }
 
-    @PutMapping("/{id}")
+    @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE)
+    @PreAuthorize("hasRole('ADMIN')")
+    @ResponseStatus(HttpStatus.CREATED)
+    public ProductResponse create(@Valid @RequestBody ProductJsonRequest request) {
+        return ProductResponse.from(productsService.create(toProduct(request)));
+    }
+
+    @PutMapping(value = "/{id}", consumes = {MediaType.MULTIPART_FORM_DATA_VALUE, MediaType.APPLICATION_FORM_URLENCODED_VALUE})
     @PreAuthorize("hasRole('ADMIN')")
     public ProductResponse update(
             @PathVariable @Positive(message = "Product id phai lon hon 0") int id,
             @Valid @ModelAttribute ProductRequest request) {
+        Products existingProduct = productsService.findById(id);
+        return ProductResponse.from(productsService.update(id, toProduct(request, existingProduct)));
+    }
+
+    @PutMapping(value = "/{id}", consumes = MediaType.APPLICATION_JSON_VALUE)
+    @PreAuthorize("hasRole('ADMIN')")
+    public ProductResponse update(
+            @PathVariable @Positive(message = "Product id phai lon hon 0") int id,
+            @Valid @RequestBody ProductJsonRequest request) {
         Products existingProduct = productsService.findById(id);
         return ProductResponse.from(productsService.update(id, toProduct(request, existingProduct)));
     }
@@ -111,6 +130,19 @@ public class ProductsController {
         return product;
     }
 
+    private Products toProduct(ProductJsonRequest request) {
+        Products product = new Products();
+        product.setCategoryId(request.getCategoryId());
+        product.setProductName(request.getProductName());
+        product.setDescription(request.getDescription());
+        product.setCareGuide(request.getCareGuide());
+        product.setPrice(request.getPrice());
+        product.setStock(request.getStock());
+        product.setActive(request.isActive());
+        product.setImage(normalizeImage(request.getImage(), null));
+        return product;
+    }
+
     private Products toProduct(ProductRequest request, Products existingProduct) {
         Products product = new Products();
         product.setCategoryId(request.getCategoryId());
@@ -129,5 +161,22 @@ public class ProductsController {
         }
 
         return product;
+    }
+
+    private Products toProduct(ProductJsonRequest request, Products existingProduct) {
+        Products product = new Products();
+        product.setCategoryId(request.getCategoryId());
+        product.setProductName(request.getProductName());
+        product.setDescription(request.getDescription());
+        product.setCareGuide(request.getCareGuide());
+        product.setPrice(request.getPrice());
+        product.setStock(request.getStock());
+        product.setActive(request.isActive());
+        product.setImage(normalizeImage(request.getImage(), existingProduct.getImage()));
+        return product;
+    }
+
+    private String normalizeImage(String image, String fallbackImage) {
+        return StringUtils.hasText(image) ? image.trim() : fallbackImage;
     }
 }

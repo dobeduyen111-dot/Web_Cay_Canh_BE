@@ -1,13 +1,17 @@
 package ceb;
 
-import org.junit.jupiter.api.Test;
-import org.springframework.boot.test.context.SpringBootTest;
+import org.junit.platform.suite.api.SelectPackages;
+import org.junit.platform.suite.api.Suite;
 
-@SpringBootTest
+@Suite
+@SelectPackages({
+        "ceb.config",
+        "ceb.controller",
+        "ceb.domain",
+        "ceb.exception",
+        "ceb.repository",
+        "ceb.security",
+        "ceb.service"
+})
 class CayCanhApplicationTests {
-
-	@Test
-	void contextLoads() {
-	}
-
 }

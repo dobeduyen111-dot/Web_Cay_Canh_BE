@@ -3,7 +3,6 @@ package ceb.security;
 import java.io.IOException;
 
 import org.springframework.http.HttpStatus;
-import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -26,7 +25,6 @@ import jakarta.servlet.http.HttpServletResponse;
 
 @Component
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
-    private static final String LOGOUT_PATH = "/api/auth/logout";
 
     private final JwtService jwtService;
     private final JwtCookieService jwtCookieService;
@@ -45,11 +43,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         this.userDetailsService = userDetailsService;
         this.securityErrorWriter = securityErrorWriter;
         this.tokenBlacklistService = tokenBlacklistService;
-    }
-
-    @Override
-    protected boolean shouldNotFilter(HttpServletRequest request) {
-        return HttpMethod.POST.matches(request.getMethod()) && LOGOUT_PATH.equals(request.getServletPath());
     }
 
     @Override

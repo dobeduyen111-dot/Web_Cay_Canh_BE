@@ -13,9 +13,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import ceb.domain.entity.Users;
 import ceb.domain.req.UserChangePasswordRequest;
-import ceb.domain.req.UserUpdateProfileRequest;
 import ceb.domain.res.MessageResponse;
-import ceb.domain.res.UserProfileUpdateResponse;
 import ceb.domain.res.UserResponse;
 import ceb.service.service.CurrentUserService;
 import ceb.service.service.UsersService;
@@ -58,14 +56,6 @@ public class UsersController {
     public UserResponse me(Authentication authentication) {
         Users user = currentUserService.getCurrentUser(authentication);
         return UserResponse.from(user);
-    }
-
-    @PutMapping("/me")
-    public UserProfileUpdateResponse updateMe(
-            Authentication authentication,
-            @Valid @RequestBody UserUpdateProfileRequest request) {
-        Users updatedUser = usersService.updateCurrentUserProfile(authentication, request);
-        return new UserProfileUpdateResponse("Cap nhat thong tin thanh cong", UserResponse.from(updatedUser));
     }
 
     @PutMapping("/me/password")

@@ -1,5 +1,7 @@
 package ceb.controller;
 
+import java.time.Duration;
+
 import org.springframework.context.annotation.Lazy;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -156,23 +158,25 @@ public class AuthController {
             }
         }
 
+        SecurityContextHolder.clearContext();
         HttpSession session = request.getSession(false);
         if (session != null) {
             session.invalidate();
         }
-        SecurityContextHolder.clearContext();
 
         response.addHeader(HttpHeaders.SET_COOKIE, jwtCookieService.clearAccessTokenCookie());
-        response.addHeader(HttpHeaders.SET_COOKIE, clearSessionCookie());
+        response.addHeader(HttpHeaders.SET_COOKIE, clearSessionCookie(request));
         return new LogoutResponse("Dang xuat thanh cong");
     }
 
-    private String clearSessionCookie() {
+    private String clearSessionCookie(HttpServletRequest request) {
+        String contextPath = request.getContextPath();
+        String cookiePath = (contextPath == null || contextPath.isBlank()) ? "/" : contextPath;
+
         return ResponseCookie.from("JSESSIONID", "")
                 .httpOnly(true)
-                .secure(false)
-                .path("/")
-                .maxAge(0)
+                .path(cookiePath)
+                .maxAge(Duration.ZERO)
                 .build()
                 .toString();
     }
