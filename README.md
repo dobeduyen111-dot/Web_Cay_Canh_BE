@@ -58,20 +58,61 @@ Project đang đọc cấu hình từ file `src/main/resources/application.prope
 Cấu hình hiện tại:
 
 ```properties
-spring.datasource.url=jdbc:postgresql://localhost:5432/caycanhdb
-spring.datasource.username=postgres
-spring.datasource.password=123
+spring.datasource.url=jdbc:postgresql://localhost:5433/caycanhdb
+spring.datasource.username=root
+spring.datasource.password=root
 ```
 
 Bạn cần:
 
 1. Tạo database `caycanhdb` trong PostgreSQL.
-2. Nếu username/password khác, sửa lại `application.properties`.
+2. Tạo user `root` với password `root`.
+3. Nếu username/password/port khác, sửa lại `application.properties`.
 
-Ví dụ tạo database:
+Ví dụ tạo database và user:
 
 ```sql
-CREATE DATABASE caycanhdb;
+CREATE USER root WITH PASSWORD 'root';
+CREATE DATABASE caycanhdb OWNER root;
+GRANT ALL PRIVILEGES ON DATABASE caycanhdb TO root;
+```
+
+## Lưu ý về port PostgreSQL
+
+Project mặc định kết nối PostgreSQL tại **port 5433**. Tuy nhiên PostgreSQL khi mới cài thường chạy ở **port 5432**.
+
+Kiểm tra port PostgreSQL đang chạy:
+
+```bash
+sudo -u postgres psql -c "SHOW port;"
+```
+
+**Nếu kết quả là 5432** (không khớp với project), có 2 cách xử lý:
+
+### Cách 1: Đổi port PostgreSQL sang 5433 (khuyến nghị, giữ nguyên config project)
+
+```bash
+sudo nano /etc/postgresql/*/main/postgresql.conf
+```
+
+Tìm dòng `port = 5432`, sửa thành:
+
+```
+port = 5433
+```
+
+Lưu file rồi restart PostgreSQL:
+
+```bash
+sudo systemctl restart postgresql
+```
+
+### Cách 2: Sửa port trong application.properties sang 5432
+
+Mở file `src/main/resources/application.properties`, sửa dòng:
+
+```properties
+spring.datasource.url=jdbc:postgresql://localhost:5432/caycanhdb
 ```
 
 ## Cấu hình application.properties
@@ -81,8 +122,8 @@ File `src/main/resources/application.properties` chứa nhiều giá trị nhạ
 ### JWT
 
 ```properties
-jwt.secret=<chuỗi bí mật tự đặt, ít nhất 32 ký tự>
-jwt.expiration=<thời gian hết hạn token, tính bằng milliseconds, ví dụ: 86400000>
+app.jwt.secret=<chuỗi bí mật tự đặt, ít nhất 32 ký tự>
+app.jwt.expiration-ms=<thời gian hết hạn token, tính bằng milliseconds, ví dụ: 3600000>
 ```
 
 ### Google OAuth2
@@ -109,10 +150,10 @@ cloudinary.api-secret=<api secret>
 Đăng ký tài khoản sandbox tại [sandbox.vnpayment.vn](https://sandbox.vnpayment.vn/).
 
 ```properties
-vnpay.tmn-code=<TMN Code>
-vnpay.hash-secret=<Hash Secret>
-vnpay.url=https://sandbox.vnpayment.vn/paymentv2/vpcpay.html
-vnpay.return-url=http://localhost:8080/api/payment/vnpay-return
+vnpay.vnp_TmnCode=<TMN Code>
+vnpay.vnp_HashSecret=<Hash Secret>
+vnpay.vnp_PayUrl=https://sandbox.vnpayment.vn/paymentv2/vpcpay.html
+vnpay.vnp_ReturnUrl=http://localhost:3000/payment/vnpay-return
 ```
 
 ### Mail (Gmail)
@@ -150,6 +191,40 @@ http://localhost:8080/swagger-ui.html
 ```
 
 Nếu Swagger UI hiện ra thì backend đã hoạt động bình thường.
+
+## Xử lý lỗi thường gặp
+
+### Lỗi: `maven-wrapper.properties: No such file`
+
+File bị đặt tên sai thành `.txt`. Chạy lệnh sau để đổi tên:
+
+```bash
+mv .mvn/wrapper/maven-wrapper.properties.txt .mvn/wrapper/maven-wrapper.properties
+```
+
+### Lỗi: `Connection to localhost:5433 refused`
+
+PostgreSQL chưa chạy hoặc chạy sai port. Kiểm tra và khởi động:
+
+```bash
+sudo systemctl start postgresql
+sudo systemctl status postgresql
+```
+
+### Lỗi: `password authentication failed for user "root"`
+
+User `root` chưa tồn tại trong PostgreSQL. Tạo user và database:
+
+```bash
+sudo -u postgres psql
+```
+
+```sql
+CREATE USER root WITH PASSWORD 'root';
+CREATE DATABASE caycanhdb OWNER root;
+GRANT ALL PRIVILEGES ON DATABASE caycanhdb TO root;
+\q
+```
 
 ## Build project
 
@@ -198,5 +273,6 @@ Phần lớn API nằm dưới prefix `/api`.
 - `src/main/java/ceb/config/CloudinaryConfig.java`
 
 
+- biến môi trường
 - `application-local.properties`
 - hoặc file cấu hình riêng không commit lên git
