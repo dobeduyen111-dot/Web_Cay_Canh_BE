@@ -6,6 +6,7 @@ public class OrderItems {
     private int productId;
     private int quantity;
     private double price;
+    private Products product;
 
     public OrderItems() {}
 
@@ -23,4 +24,7 @@ public class OrderItems {
 
     public double getPrice() { return price; }
     public void setPrice(double price) { this.price = price; }
+
+    public Products getProduct() { return product; }
+    public void setProduct(Products product) { this.product = product; }
 }

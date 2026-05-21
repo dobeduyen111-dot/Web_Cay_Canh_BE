@@ -24,6 +24,7 @@ import ceb.domain.req.ProductJsonRequest;
 import ceb.domain.req.ProductRequest;
 import ceb.domain.res.MessageResponse;
 import ceb.domain.res.ProductResponse;
+import ceb.exception.ProductNotFoundException;
 import ceb.service.service.CloudinaryService;
 import ceb.service.service.ProductsService;
 import jakarta.validation.Valid;
@@ -52,7 +53,11 @@ public class ProductsController {
     @GetMapping("/{id}")
     public ProductResponse findById(
             @PathVariable @Positive(message = "Product id phai lon hon 0") int id) {
-        return ProductResponse.from(productsService.findById(id));
+        Products product = productsService.findById(id);
+        if (!product.isActive()) {
+            throw new ProductNotFoundException(id);
+        }
+        return ProductResponse.from(product);
     }
 
     @GetMapping("/search")

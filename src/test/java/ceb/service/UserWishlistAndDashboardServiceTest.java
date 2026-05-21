@@ -14,6 +14,7 @@ import ceb.repository.DashboardRepository;
 import ceb.repository.ProductsRepository;
 import ceb.repository.UsersRepository;
 import ceb.repository.WishlistRepository;
+import ceb.repository.OrdersRepository;
 import ceb.security.CustomUserDetails;
 import ceb.service.implement.CurrentUserServiceImpl;
 import ceb.service.implement.DashboardServiceImpl;
@@ -115,15 +116,18 @@ class UserWishlistAndDashboardServiceTest {
     @Test
     void dashboardServiceAggregatesRepositoryCounters() {
         DashboardRepository repository = mock(DashboardRepository.class);
+        OrdersRepository ordersRepository = mock(OrdersRepository.class);
         when(repository.getTotalOrders()).thenReturn(10);
         when(repository.getTotalRevenue()).thenReturn(500_000.0);
         when(repository.getTotalCustomers()).thenReturn(3);
+        when(repository.getTotalProducts()).thenReturn(20);
 
-        DashboardResponse response = new DashboardServiceImpl(repository).getDashboard();
+        DashboardResponse response = new DashboardServiceImpl(repository, ordersRepository).getDashboard();
 
         assertThat(response.getTotalOrders()).isEqualTo(10);
         assertThat(response.getTotalRevenue()).isEqualTo(500_000.0);
         assertThat(response.getTotalCustomers()).isEqualTo(3);
+        assertThat(response.getTotalProducts()).isEqualTo(20);
     }
 
     @Test

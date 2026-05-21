@@ -9,6 +9,7 @@ import org.springframework.jdbc.support.KeyHolder;
 import org.springframework.stereotype.Repository;
 
 import java.sql.PreparedStatement;
+import java.sql.Timestamp;
 import java.util.List;
 import java.util.Objects;
 
@@ -52,6 +53,29 @@ public class OrdersRepository {
             ORDER BY o.OrderDate DESC
         """;
         return jdbc.query(sql, new BeanPropertyRowMapper<>(Orders.class));
+    }
+
+    public List<Orders> findRecentByDateRange(Timestamp start, Timestamp end, int limit) {
+        String sql = """
+            SELECT o.*, u.FullName
+            FROM Orders o
+            JOIN Users u ON o.UserId = u.UserId
+            WHERE o.OrderDate >= ? AND o.OrderDate < ?
+            ORDER BY o.OrderDate DESC
+            LIMIT ?
+        """;
+        return jdbc.query(sql, new BeanPropertyRowMapper<>(Orders.class), start, end, limit);
+    }
+
+    public List<Orders> findAllByDateRange(Timestamp start, Timestamp end) {
+        String sql = """
+            SELECT o.*, u.FullName
+            FROM Orders o
+            JOIN Users u ON o.UserId = u.UserId
+            WHERE o.OrderDate >= ? AND o.OrderDate < ?
+            ORDER BY o.OrderDate DESC
+        """;
+        return jdbc.query(sql, new BeanPropertyRowMapper<>(Orders.class), start, end);
     }
     public void updateStatus(int orderId, String status) {
         String sql = "UPDATE Orders SET Status = ? WHERE OrderId = ?";

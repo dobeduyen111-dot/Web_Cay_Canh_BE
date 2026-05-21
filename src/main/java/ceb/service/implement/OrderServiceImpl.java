@@ -93,7 +93,7 @@ public class OrderServiceImpl implements OrderService {
 
     @Override
     public List<Orders> findByUserId(int userId) {
-        return ordersRepository.findByUserId(userId);
+        return ordersRepository.findByUserId(userId).stream().peek(order -> order.setItems(findItemsByOrderId(order.getOrderId()))).toList();
     }
 
     @Override

@@ -17,6 +17,7 @@ public class OrderItemResponse {
     private int productId;
     private int quantity;
     private double price;
+    private ProductResponse product;
 
     public static OrderItemResponse from(OrderItems item) {
         return new OrderItemResponse(
@@ -24,6 +25,7 @@ public class OrderItemResponse {
                 item.getOrderId(),
                 item.getProductId(),
                 item.getQuantity(),
-                item.getPrice());
+                item.getPrice(),
+                item.getProduct() == null ? null : ProductResponse.from(item.getProduct()));
     }
 }

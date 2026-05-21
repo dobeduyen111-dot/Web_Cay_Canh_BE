@@ -10,16 +10,29 @@ import java.util.List;
 @Repository
 public class ProductsRepository {
 
+    private static final String PRODUCT_COLUMNS = """
+        ProductId AS productId,
+        CategoryId AS categoryId,
+        ProductName AS productName,
+        Description AS description,
+        CareGuide AS careGuide,
+        Price AS price,
+        Stock AS stock,
+        Image AS image,
+        IsActive AS active,
+        CreatedAt AS createdAt
+    """;
+
     @Autowired
     private JdbcTemplate jdbc;
 
     public List<Products> findAll() {
-        String sql = "SELECT * FROM Products";
+        String sql = "SELECT " + PRODUCT_COLUMNS + " FROM Products WHERE IsActive = true ORDER BY ProductId DESC";
         return jdbc.query(sql, new BeanPropertyRowMapper<>(Products.class));
     }
 
     public Products findById(int id) {
-        String sql = "SELECT * FROM Products WHERE ProductId = ?";
+        String sql = "SELECT " + PRODUCT_COLUMNS + " FROM Products WHERE ProductId = ?";
         return jdbc.queryForObject(sql, new BeanPropertyRowMapper<>(Products.class), id);
     }
 
@@ -69,25 +82,77 @@ public class ProductsRepository {
 
     public List<Products> search(String keyword) {
         String sql = """
-            SELECT * FROM Products
-            WHERE LOWER(ProductName) LIKE LOWER(?)
-               OR LOWER(COALESCE(Description, '')) LIKE LOWER(?)
+            SELECT %s FROM Products
+            WHERE IsActive = true
+              AND (
+                LOWER(ProductName) LIKE LOWER(?)
+                OR LOWER(COALESCE(Description, '')) LIKE LOWER(?)
+              )
+            ORDER BY ProductId DESC
         """;
         String searchKeyword = "%" + keyword + "%";
-        return jdbc.query(sql, new BeanPropertyRowMapper<>(Products.class), searchKeyword, searchKeyword);
+        return jdbc.query(sql.formatted(PRODUCT_COLUMNS), new BeanPropertyRowMapper<>(Products.class), searchKeyword, searchKeyword);
     }
 
     public List<Products> getByCategoryLimit(int categoryId, int limit) {
-        // Sửa: IsActive = true và thứ tự tham số ? (1 là categoryId, 2 là limit)
-        String sql = "SELECT * FROM Products WHERE CategoryId = ? AND IsActive = true ORDER BY RANDOM() LIMIT ?";
+        String sql = "SELECT " + PRODUCT_COLUMNS + " FROM Products WHERE CategoryId = ? AND IsActive = true ORDER BY RANDOM() LIMIT ?";
         return jdbc.query(sql,
                 new BeanPropertyRowMapper<>(Products.class),
-                categoryId, limit); // Đổi chỗ categoryId lên trước limit
+                categoryId, limit);
     }
 
     public List<Products> findByCategory(int categoryId) {
-        // Sửa: IsActive = true
-        String sql = "SELECT * FROM Products WHERE CategoryId = ? AND IsActive = true";
+        String sql = "SELECT " + PRODUCT_COLUMNS + " FROM Products WHERE CategoryId = ? AND IsActive = true ORDER BY ProductId DESC";
         return jdbc.query(sql, new BeanPropertyRowMapper<>(Products.class), categoryId);
+    }
+
+    public List<Products> findAdminPage(int offset, int limit, String keyword) {
+        boolean hasKeyword = keyword != null && !keyword.isBlank();
+        String sql = """
+            SELECT %s FROM Products
+            %s
+            ORDER BY ProductId DESC
+            LIMIT ? OFFSET ?
+        """;
+
+        String whereClause = hasKeyword
+                ? "WHERE LOWER(ProductName) LIKE LOWER(?) OR LOWER(COALESCE(Description, '')) LIKE LOWER(?)"
+                : "";
+
+        if (hasKeyword) {
+            String searchKeyword = "%" + keyword.trim() + "%";
+            return jdbc.query(sql.formatted(PRODUCT_COLUMNS, whereClause),
+                    new BeanPropertyRowMapper<>(Products.class),
+                    searchKeyword,
+                    searchKeyword,
+                    limit,
+                    offset);
+        }
+
+        return jdbc.query(sql.formatted(PRODUCT_COLUMNS, whereClause),
+                new BeanPropertyRowMapper<>(Products.class),
+                limit,
+                offset);
+    }
+
+    public long countAdminProducts(String keyword) {
+        boolean hasKeyword = keyword != null && !keyword.isBlank();
+        String sql = """
+            SELECT COUNT(*) FROM Products
+            %s
+        """;
+
+        String whereClause = hasKeyword
+                ? "WHERE LOWER(ProductName) LIKE LOWER(?) OR LOWER(COALESCE(Description, '')) LIKE LOWER(?)"
+                : "";
+
+        if (hasKeyword) {
+            String searchKeyword = "%" + keyword.trim() + "%";
+            Long count = jdbc.queryForObject(sql.formatted(whereClause), Long.class, searchKeyword, searchKeyword);
+            return count == null ? 0L : count;
+        }
+
+        Long count = jdbc.queryForObject(sql.formatted(whereClause), Long.class);
+        return count == null ? 0L : count;
     }
 }

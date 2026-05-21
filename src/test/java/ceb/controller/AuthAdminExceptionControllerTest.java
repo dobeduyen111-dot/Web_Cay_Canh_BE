@@ -22,10 +22,13 @@ import ceb.exception.VnpayException;
 import ceb.security.JwtCookieService;
 import ceb.security.JwtService;
 import ceb.service.service.AuthService;
+import ceb.service.service.CurrentUserService;
 import ceb.service.service.DashboardService;
 import ceb.service.service.OrderService;
 import ceb.service.service.OtpMailService;
+import ceb.service.service.ProductsService;
 import ceb.service.service.UsersService;
+import ceb.service.implement.AdminSearchService;
 import jakarta.servlet.http.Cookie;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpHeaders;
@@ -95,8 +98,18 @@ class AuthAdminExceptionControllerTest {
         OrderService orderService = mock(OrderService.class);
         DashboardService dashboardService = mock(DashboardService.class);
         AuthService authService = mock(AuthService.class);
-        AdminController controller = new AdminController(usersService, orderService, dashboardService, authService);
-        when(dashboardService.getDashboard()).thenReturn(new DashboardResponse(3, 500_000, 2));
+        ProductsService productsService = mock(ProductsService.class);
+        CurrentUserService currentUserService = mock(CurrentUserService.class);
+        AdminSearchService adminSearchService = mock(AdminSearchService.class);
+        AdminController controller = new AdminController(
+                usersService,
+                orderService,
+                dashboardService,
+                authService,
+                productsService,
+                currentUserService,
+                adminSearchService);
+        when(dashboardService.getDashboard()).thenReturn(new DashboardResponse(3, 500_000, 2, 5, List.of(), List.of()));
         when(orderService.findAll()).thenReturn(List.of(TestData.order()));
         when(orderService.updateStatus(17, "Da giao")).thenReturn(TestData.order());
         when(authService.register(any(Users.class))).thenReturn(TestData.user());

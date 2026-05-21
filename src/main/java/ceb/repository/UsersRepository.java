@@ -9,15 +9,13 @@ import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Repository;
 
 import ceb.domain.entity.Users;
+import ceb.domain.res.AdminCustomerResponse;
 
 @Repository
 public class UsersRepository {
 
     @Autowired
     private JdbcTemplate jdbc;
-
-    
-
 
     // Mapper chuyển đổi dữ liệu từ DB sang Object Users
     private final RowMapper<Users> userMapper = (rs, rowNum) -> {
@@ -35,6 +33,18 @@ public class UsersRepository {
         }
         return u;
     };
+
+    private final RowMapper<AdminCustomerResponse> adminCustomerMapper = (rs, rowNum) -> new AdminCustomerResponse(
+            rs.getInt("userId"),
+            rs.getString("fullName"),
+            rs.getString("email"),
+            rs.getString("phone"),
+            rs.getString("address"),
+            rs.getString("role"),
+            rs.getBoolean("enabled"),
+            rs.getTimestamp("createdAt") == null ? null : rs.getTimestamp("createdAt").toLocalDateTime(),
+            rs.getInt("orderCount"),
+            rs.getDouble("totalSpent"));
 
     // 1. Dùng cho MyUserDetailsService (Đăng nhập)
     public Optional<Users> findByUsername(String username) {
@@ -94,12 +104,92 @@ public class UsersRepository {
 
     // 6. Lấy tất cả danh sách
     public List<Users> findAlls() {
-        return jdbc.query("SELECT * FROM Users", userMapper);
+        return jdbc.query("SELECT * FROM Users ORDER BY CreatedAt DESC NULLS LAST, UserId DESC", userMapper);
     }
 
     // 7. Xóa User
     public int deleteById(int id) {
         String sql = "DELETE FROM Users WHERE UserId = ?";
         return jdbc.update(sql, id);
+    }
+
+    public int updateRole(int userId, String role) {
+        String sql = "UPDATE Users SET Role = ? WHERE UserId = ?";
+        return jdbc.update(sql, role, userId);
+    }
+
+    public int updateEnabled(int userId, boolean enabled) {
+        String sql = "UPDATE Users SET Enabled = ? WHERE UserId = ?";
+        return jdbc.update(sql, enabled, userId);
+    }
+
+    public long countEnabledAdmins() {
+        Long count = jdbc.queryForObject(
+                "SELECT COUNT(*) FROM Users WHERE UPPER(Role) = 'ADMIN' AND Enabled = true",
+                Long.class);
+        return count == null ? 0L : count;
+    }
+
+    public List<AdminCustomerResponse> findAdminCustomersPage(int offset, int limit, String keyword) {
+        boolean hasKeyword = keyword != null && !keyword.isBlank();
+        String sql = """
+            SELECT
+                u.UserId AS userId,
+                u.FullName AS fullName,
+                u.Email AS email,
+                u.Phone AS phone,
+                u.Address AS address,
+                u.Role AS role,
+                u.Enabled AS enabled,
+                u.CreatedAt AS createdAt,
+                COALESCE(SUM(CASE
+                    WHEN LOWER(COALESCE(o.Status, '')) NOT IN ('cancelled', 'canceled', 'cancel', 'da huy', 'đã hủy')
+                    THEN 1
+                    ELSE 0
+                END), 0) AS orderCount,
+                COALESCE(SUM(CASE
+                    WHEN LOWER(COALESCE(o.Status, '')) NOT IN ('cancelled', 'canceled', 'cancel', 'da huy', 'đã hủy')
+                    THEN o.TotalAmount
+                    ELSE 0
+                END), 0) AS totalSpent
+            FROM Users u
+            LEFT JOIN Orders o ON o.UserId = u.UserId
+            %s
+            GROUP BY u.UserId, u.FullName, u.Email, u.Phone, u.Address, u.Role, u.Enabled, u.CreatedAt
+            ORDER BY u.CreatedAt DESC NULLS LAST, u.UserId DESC
+            LIMIT ? OFFSET ?
+        """;
+
+        String whereClause = hasKeyword
+                ? "WHERE LOWER(COALESCE(u.FullName, '')) LIKE LOWER(?) OR LOWER(COALESCE(u.Email, '')) LIKE LOWER(?) OR COALESCE(u.Phone, '') LIKE ?"
+                : "";
+
+        if (hasKeyword) {
+            String normalized = "%" + keyword.trim() + "%";
+            return jdbc.query(sql.formatted(whereClause), adminCustomerMapper, normalized, normalized, normalized, limit, offset);
+        }
+
+        return jdbc.query(sql.formatted(whereClause), adminCustomerMapper, limit, offset);
+    }
+
+    public long countAdminCustomers(String keyword) {
+        boolean hasKeyword = keyword != null && !keyword.isBlank();
+        String sql = """
+            SELECT COUNT(*) FROM Users u
+            %s
+        """;
+
+        String whereClause = hasKeyword
+                ? "WHERE LOWER(COALESCE(u.FullName, '')) LIKE LOWER(?) OR LOWER(COALESCE(u.Email, '')) LIKE LOWER(?) OR COALESCE(u.Phone, '') LIKE ?"
+                : "";
+
+        if (hasKeyword) {
+            String normalized = "%" + keyword.trim() + "%";
+            Long count = jdbc.queryForObject(sql.formatted(whereClause), Long.class, normalized, normalized, normalized);
+            return count == null ? 0L : count;
+        }
+
+        Long count = jdbc.queryForObject(sql.formatted(whereClause), Long.class);
+        return count == null ? 0L : count;
     }
 }

@@ -3,6 +3,8 @@ package ceb.service.service;
 import java.util.List;
 
 import ceb.domain.model.Products;
+import ceb.domain.res.PagedResponse;
+import ceb.domain.res.ProductResponse;
 
 public interface ProductsService {
 
@@ -21,4 +23,6 @@ public interface ProductsService {
     Products update(int id, Products product);
 
     void delete(int id);
+
+    PagedResponse<ProductResponse> findAdminPage(int page, int size, String keyword);
 }

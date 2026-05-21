@@ -6,6 +6,8 @@ import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.stereotype.Service;
 
 import ceb.domain.model.Products;
+import ceb.domain.res.PagedResponse;
+import ceb.domain.res.ProductResponse;
 import ceb.exception.CategoryNotFoundException;
 import ceb.exception.InvalidProductCategoryException;
 import ceb.exception.InvalidProductException;
@@ -89,6 +91,25 @@ public class ProductsServiceImpl implements ProductsService {
     public void delete(int id) {
         findById(id);
         productsRepository.delete(id);
+    }
+
+    @Override
+    public PagedResponse<ProductResponse> findAdminPage(int page, int size, String keyword) {
+        int safePage = Math.max(page, 1);
+        int safeSize = Math.max(size, 1);
+        int offset = (safePage - 1) * safeSize;
+
+        long totalItems = productsRepository.countAdminProducts(keyword);
+        int totalPages = totalItems == 0 ? 0 : (int) Math.ceil((double) totalItems / safeSize);
+
+        return new PagedResponse<>(
+                productsRepository.findAdminPage(offset, safeSize, keyword).stream().map(ProductResponse::from).toList(),
+                safePage,
+                safeSize,
+                totalItems,
+                totalPages,
+                safePage < totalPages,
+                safePage > 1);
     }
 
     private void validateProduct(Products product) {
